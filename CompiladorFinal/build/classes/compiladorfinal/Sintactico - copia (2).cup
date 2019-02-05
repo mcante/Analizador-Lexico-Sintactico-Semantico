@@ -1,0 +1,308 @@
+//Proyecto Final - Compiladores
+//Melvin Randolfo Canté Guerra
+//5990 14 1106
+//Clase Sintactico
+
+
+package compiladorfinal; 
+
+import java.util.LinkedList;
+import java_cup.runtime.*;
+//CODIGO DEL PARSER
+parser code 
+{:
+	public static Nodo padre;
+	public int conta=0;
+
+	//Listas para almacenar las PALABRAS RESERVADAS, SIMBOLOS, CADENAS Y VALORES NUMÉRICOS
+	public static LinkedList<String> PalabraReservada = new LinkedList<String>();
+	public static LinkedList<String> Simbolo = new LinkedList<String>();
+	public static LinkedList<String> Cadenas = new LinkedList<String>();
+	public static LinkedList<String> ValoresNumericos = new LinkedList<String>();
+	
+
+    
+    /**
+     * Método al que se llama automáticamente ante algún error sintactico.
+     **/ 
+    public void syntax_error(Symbol s){ 
+            System.err.println("Error Sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+".");
+    } 
+    /**
+     * Método al que se llama en el momento en que ya no es posible una recuperación de errores.
+     **/ 
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{ 
+            System.err.println("Error síntactico irrecuperable en la Línea " + (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
+    }  
+:} 
+
+
+//CREACIÓN DE OBJETOS
+action code
+{:
+	public static int valor;
+	:}
+
+
+//PUNTUACION
+terminal String PTCOMA,PARIZQ,PARDER,LLAVIZQ,LLAVDER;
+//OPERADORES
+terminal String MENQUE,MAYQUE,MENOIGUAL,MAYOIGUAL,CIGUAL,DIFERENTE;
+terminal String AND, OR;
+//TIPOS DATOS
+terminal String ENTERO;
+terminal String DECIMAL;
+terminal String BOOL;
+terminal String CADENA;
+terminal String RIMPRIMIR, RMIENTRAS, RIF, RELSE;
+terminal String IDENTIFICADOR;
+
+non terminal ini;
+non terminal instrucciones;
+non terminal instruccion;
+non terminal expresion_numerica;
+non terminal expresion_cadena;
+non terminal expresion_comparacion;
+non terminal expresion_logica;
+
+precedence left AND;
+precedence left OR; 
+
+//ESPECIFICAR CON QUE NO TERMINAL EMPEZAR
+start with ini; 
+
+ini::=instrucciones:a
+	{:
+	    Nodo nd = new Nodo("Inicio");
+	    nd.setIdNod(parser.conta++);
+	    nd.AddHijos((Nodo) a);
+	    parser.padre = (Nodo) nd;
+
+
+	    System.out.println("Hijo: " + a);
+
+	    System.out.println("------------*************----------------");
+	    System.out.println("Compilacion exitosa!");
+	    System.out.println("------------*************----------------");
+	    RESULT = nd;
+	:};
+
+
+instrucciones ::= instrucciones:a instruccion:b
+   {: 
+	   	Nodo nd = new Nodo("Sentencias");
+
+	    nd.setIdNod(parser.conta++);
+	    nd.AddHijos((Nodo) a);
+	    nd.AddHijos((Nodo) b);
+	    RESULT = nd;
+   	:}
+ | instruccion:c
+ 	{: 
+    RESULT = c;
+   	:}
+; 
+
+instruccion ::= RIMPRIMIR PARIZQ expresion_cadena:a PARDER PTCOMA                          
+   {: 
+	   	parser.PalabraReservada.add(" IMPRIMIR ");
+
+	   	Nodo nd = new Nodo("Sentencia");
+	    nd.AddHijos((Nodo) a);
+	    nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+   :}
+ | RMIENTRAS PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER 
+ 	{: 
+ 		parser.PalabraReservada.add(" WHILE "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } "); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) ");
+	   	
+	   	Nodo nd = new Nodo("WHILE");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER       
+ 	{:
+ 		parser.PalabraReservada.add(" IF "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } "); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); 
+ 	
+	   	Nodo nd = new Nodo("IF");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER  RELSE LLAVIZQ instrucciones:c LLAVDER 
+ 	{: 
+ 		parser.PalabraReservada.add(" IF "); parser.PalabraReservada.add(" ELSE "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } "); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); 
+
+ 		Nodo nd = new Nodo("IF");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	Nodo nd3 = new Nodo("Else");
+	   	nd3.setIdNod(parser.conta++);
+	   	nd3.AddHijos((Nodo) nd3);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | error
+;
+
+
+expresion_numerica  ::= 
+ |  PARIZQ expresion_numerica:a PARDER                       {: parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); :}
+ |  ENTERO:a                                                 
+ 	{: 
+ 		parser.ValoresNumericos.add(new Integer(a)+""); 
+ 		
+ 		Nodo nd = new Nodo("Entero");
+	    nd.setValor(""+a);
+	    nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+
+ |  DECIMAL:a                                                
+ 	{: 
+ 		parser.ValoresNumericos.add(new Double(a)+"");
+
+ 		Nodo nd = new Nodo("Decimal");
+	    nd.setValor(""+a);
+	    nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ |  IDENTIFICADOR: a                                         
+ 	{: 
+ 		Nodo nd = new Nodo("Identificador");
+	    nd.setValor(""+a);
+	    nd.setIdNod(parser.conta++);
+	    RESULT = a;
+ 	:}
+;
+
+expresion_cadena::=
+    CADENA:a                                                 
+    {: 
+    	parser.Cadenas.add(a); 
+
+    	Nodo nd = new Nodo("Cadena");
+	    nd.setValor(""+a);
+	    nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+    :}
+
+ |  expresion_logica:a                                       
+ 	{: 
+ 		Nodo nd = new Nodo("Expresion_Logica");
+	    nd.AddHijos((Nodo) a);
+	    nd.setIdNod(parser.conta++);
+	    RESULT = a;
+ 	:}
+;
+
+expresion_comparacion  ::= 
+   expresion_numerica:a  MAYQUE    expresion_numerica:b
+   {: 
+   		parser.Simbolo.add(" > ");
+
+   		Nodo nd = new Nodo("Simbolo_MayorQ");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+   :} 
+
+ | expresion_numerica:a  MENQUE    expresion_numerica:b
+ 	{: 
+ 		parser.Simbolo.add(" < ");
+
+ 		Nodo nd = new Nodo("Simbolo_MenorQ");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}  
+ | expresion_numerica:a  MAYOIGUAL expresion_numerica:b
+ 	{: 
+ 		parser.Simbolo.add(" >= "); 
+
+ 		Nodo nd = new Nodo("Simbolo_MayorIgualQ");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | expresion_numerica:a  MENOIGUAL expresion_numerica:b
+ 	{: 
+ 		parser.Simbolo.add(" <= ");
+
+ 		Nodo nd = new Nodo("Simbolo_MenorIgualQ");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | expresion_numerica:a  CIGUAL    expresion_numerica:b
+ 	{: 
+ 		parser.Simbolo.add(" == "); 
+
+ 		Nodo nd = new Nodo("Simbolo_IgualQ");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | expresion_numerica:a  DIFERENTE expresion_numerica:b
+ 	{: 
+ 		parser.Simbolo.add(" != ");
+
+ 		Nodo nd = new Nodo("Simbolo_DiferenteQ");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | BOOL:a                                               
+ 	{: 
+ 		Nodo nd = new Nodo("Expresion_Logica");
+	   	nd.setValor(""+a);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+ 	:}
+ | expresion_numerica:a                                 
+ 	{: 
+ 		Nodo nd = new Nodo("Expresion_Aritmetica");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = a;
+ 	:}
+;
+
+expresion_logica ::=
+    expresion_logica:a OR expresion_logica:b
+    {: 
+    	parser.PalabraReservada.add(" OR "); 
+
+    	Nodo nd = new Nodo("OR");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+    :}
+    |expresion_logica:a AND expresion_logica:b
+    {: 
+    	parser.PalabraReservada.add(" AND "); 
+
+    	Nodo nd = new Nodo("AND");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.AddHijos((Nodo) b);
+	   	nd.setIdNod(parser.conta++);
+	    RESULT = nd;
+    :}
+    |expresion_comparacion:a
+    {:
+    	Nodo nd = new Nodo("Expresion_Aritmetica");
+	   	nd.AddHijos((Nodo) a);
+	   	nd.setIdNod(parser.conta++);
+    	RESULT=a;
+    :}
+;

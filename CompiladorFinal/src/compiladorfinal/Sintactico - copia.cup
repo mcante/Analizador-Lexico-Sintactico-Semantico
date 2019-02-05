@@ -1,0 +1,179 @@
+//Proyecto Final - Compiladores
+//Melvin Randolfo Canté Guerra
+//5990 14 1106
+//Clase Sintactico
+
+
+package compiladorfinal; 
+//IMPORTS PARA EL ARBOL AST
+import arbol.Asignacion;
+import arbol.Declaracion;
+import arbol.Declaraciones;
+import arbol.Imprimir;
+import arbol.If;
+import arbol.Instruccion;
+import arbol.Mientras;
+import arbol.Operacion;
+import arbol.Simbolo.Tipo;
+import arbol.TablaDeSimbolos;
+import java.util.LinkedList;
+import java_cup.runtime.*;
+//CODIGO DEL PARSER
+parser code 
+{:
+	public static Nodo padre;
+	public int cont=0;
+
+	//Listas para almacenar las PALABRAS RESERVADAS, SIMBOLOS, CADENAS Y VALORES NUMÉRICOS
+	public static LinkedList<String> PalabraReservada = new LinkedList<String>();
+	public static LinkedList<String> Simbolo = new LinkedList<String>();
+	public static LinkedList<String> Cadenas = new LinkedList<String>();
+	public static LinkedList<String> ValoresNumericos = new LinkedList<String>();
+	
+
+    /**
+     * Variable en la que se almacena el arbol de sintaxis abstracta que se 
+     * genera luego del analisis sintáctico.
+     */
+    public LinkedList<Instruccion> AST;
+    /**
+     * Método al que se llama automáticamente ante algún error sintactico.
+     **/ 
+    public void syntax_error(Symbol s){ 
+            System.err.println("Error Sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+".");
+    } 
+    /**
+     * Método al que se llama en el momento en que ya no es posible una recuperación de errores.
+     **/ 
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{ 
+            System.err.println("Error síntactico irrecuperable en la Línea " + (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
+    }  
+    /**
+     * Método que devuelve el AST que se generó después de realizar el análisis sintáctico. 
+     * @return árbol de sintaxis abstacta que será utilizado posteriormente en la ejecución.
+     */
+    public LinkedList<Instruccion> getAST() {
+        return AST;
+    }
+:} 
+//CREACIÓN DE OBJETOS
+action code
+{:
+	public static int valor;
+	:}
+
+
+//PUNTUACION
+terminal String PTCOMA,COMA,PARIZQ,PARDER,LLAVIZQ,LLAVDER;
+//OPERADORES
+terminal String MAS,MENOS,POR,DIVIDIDO;
+terminal String MENQUE,MAYQUE,MENOIGUAL,MAYOIGUAL,CIGUAL,DIFERENTE;
+terminal String AND, OR;
+//TIPOS DATOS
+terminal String ENTERO;
+terminal String DECIMAL;
+terminal String BOOL;
+terminal String CADENA;
+terminal String UMENOS;
+terminal String RIMPRIMIR, RMIENTRAS, VAR, RIF, RELSE;
+terminal String IGUAL;
+terminal String IDENTIFICADOR;
+
+non terminal ini;
+non terminal LinkedList<Instruccion> instrucciones;
+non terminal Instruccion instruccion;
+non terminal LinkedList<Instruccion> declaracionlist;
+non terminal Instruccion declaracion;
+non terminal Instruccion asignacion;
+non terminal Operacion expresion_numerica;
+non terminal Operacion expresion_cadena;
+non terminal Operacion expresion_comparacion;
+non terminal Operacion expresion_logica;
+
+precedence left MAS,MENOS;
+precedence left POR,DIVIDIDO;
+precedence right UMENOS;
+precedence left AND;
+precedence left OR; 
+
+//ESPECIFICAR CON QUE NO TERMINAL EMPEZAR
+start with ini; 
+
+ini::=instrucciones:a{:
+    //se guarda el AST, que es la lista principal de instrucciones en la variable
+    //AST que se definió dentro del parser
+    parser.AST=a;
+    Nodo nd = new Nodo();
+    nd.setEtiqueta("Inicio");
+    nd.setidNod(parser.cont);
+    parser.cont++;
+    nd.AddHijos((Nodo) a);
+    parser.padre = (Nodo) nd;
+    RESULT = nd;
+	:};
+
+
+instrucciones ::= 
+   instrucciones:a instruccion:b{:RESULT=a; RESULT.add(b);:}
+ | instruccion:a{:RESULT=new LinkedList<>(); RESULT.add(a);:}
+; 
+
+instruccion ::= 
+   RIMPRIMIR PARIZQ expresion_cadena:a PARDER PTCOMA                          {:RESULT=new Imprimir(a); parser.PalabraReservada.add(" IMPRIMIR "); :}
+ | RMIENTRAS PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT=new Mientras(a,b); parser.PalabraReservada.add(" WHILE "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } "); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); :}
+ | VAR declaracionlist:a PTCOMA                                              {:RESULT=new Declaraciones(a);:}
+ | asignacion:a PTCOMA                                                            {:RESULT=a; :}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER       {:RESULT=new If(a,b); parser.PalabraReservada.add(" IF "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } "); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); :}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER  RELSE LLAVIZQ instrucciones:c LLAVDER {:RESULT=new If(a,b,c); parser.PalabraReservada.add(" IF "); parser.PalabraReservada.add(" ELSE "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } "); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); :}
+ | error
+;
+
+declaracionlist ::=
+    declaracionlist:a COMA asignacion:b     {:RESULT=a;Asignacion aux=(Asignacion)b; aux.declaracion=true;  RESULT.add(b);:}
+    |declaracionlist:a COMA declaracion:b   {:RESULT=a; RESULT.add(b);:}
+    |declaracion:a                          {:RESULT=new LinkedList<>(); RESULT.add(a);:}
+    |asignacion:a                           {:RESULT=new LinkedList<>(); Asignacion aux=(Asignacion)a; aux.declaracion=true;  RESULT.add(a);:}
+;
+
+declaracion ::= 
+    IDENTIFICADOR:a {:RESULT=new Declaracion(a,Tipo.NUMERO);:}
+;
+
+asignacion ::=
+      IDENTIFICADOR:a IGUAL expresion_cadena:b                          {:RESULT=new Asignacion(a,b);:}
+;
+
+expresion_numerica  ::= 
+    MENOS expresion_numerica:a                               {:RESULT=new Operacion(a,Operacion.Tipo_operacion.NEGATIVO);:}%prec UMENOS     
+ |  expresion_numerica:a MAS        expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.SUMA);:}
+ |  expresion_numerica:a MENOS      expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.RESTA);:}
+ |  expresion_numerica:a POR        expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.MULTIPLICACION);:}
+ |  expresion_numerica:a DIVIDIDO   expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.DIVISION);:}
+ |  PARIZQ expresion_numerica:a PARDER                       {:RESULT=a; parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); :}
+ |  ENTERO:a                                                 {:RESULT=new Operacion(new Double(a)); parser.ValoresNumericos.add(new Double(a)+""); :}
+ |  DECIMAL:a                                                {:RESULT=new Operacion(new Double(a)); parser.ValoresNumericos.add(new Double(a)+""); :}
+ |  IDENTIFICADOR: a                                         {:RESULT=new Operacion(a,Operacion.Tipo_operacion.IDENTIFICADOR);:}
+;
+
+expresion_cadena::=
+    CADENA:a                                                 {:RESULT=new Operacion(a,Operacion.Tipo_operacion.CADENA); parser.ValoresNumericos.add(a); :}
+ |  expresion_logica:a                                       {:RESULT=a;:}
+;
+
+expresion_comparacion  ::= 
+   expresion_numerica:a  MAYQUE    expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MAYOR_QUE); parser.Simbolo.add(" > ");:} 
+ | expresion_numerica:a  MENQUE    expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MENOR_QUE); parser.Simbolo.add(" < ");:}  
+ | expresion_numerica:a  MAYOIGUAL expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MAYOIGUAL); parser.Simbolo.add(" >= "); :}
+ | expresion_numerica:a  MENOIGUAL expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MENOIGUAL); parser.Simbolo.add(" <= ");:}
+ | expresion_numerica:a  CIGUAL    expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.CIGUAL); parser.Simbolo.add(" == "); :}
+ | expresion_numerica:a  DIFERENTE expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.DIFERENTE); parser.Simbolo.add(" != ");:}
+ | BOOL:a                                               {:RESULT=new Operacion(Boolean.valueOf(a)); :}
+ | expresion_numerica:a                                 {:RESULT=a; :}
+//| IDENTIFICADOR: a                                     {:RESULT=new Operacion(a,Operacion.Tipo_operacion.IDENTIFICADORBOOL);:}
+;
+
+expresion_logica ::=
+    expresion_logica:a OR expresion_logica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.OR); parser.PalabraReservada.add(" OR "); :}
+    |expresion_logica:a AND expresion_logica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.AND); parser.PalabraReservada.add(" AND "); :}
+    |expresion_comparacion:a{:RESULT=a;:}
+;

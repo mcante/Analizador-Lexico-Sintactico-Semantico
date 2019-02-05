@@ -1,0 +1,499 @@
+//Proyecto Final - Compiladores
+//Melvin Randolfo Canté Guerra
+//5990 14 1106
+//Clase Sintactico
+
+
+package compiladorfinal; 
+
+import java.util.LinkedList;
+import java_cup.runtime.*;
+//CODIGO DEL PARSER
+parser code 
+{:
+	public static Nodo padre;
+	public int contador=0;
+
+	//Listas para almacenar las PALABRAS RESERVADAS, SIMBOLOS, CADENAS Y VALORES NUMÉRICOS
+	public static LinkedList<String> PalabraReservada = new LinkedList<String>();
+	public static LinkedList<String> Simbolo = new LinkedList<String>();
+	public static LinkedList<String> Cadenas = new LinkedList<String>();
+  public static LinkedList<String> Variables = new LinkedList<String>();
+	public static LinkedList<String> ValoresNumericos = new LinkedList<String>();
+	
+  public static LinkedList<String> Errores = new LinkedList<String>();
+
+    
+    /**
+     * Método al que se llama automáticamente ante algún error sintactico.
+     **/ 
+    public void syntax_error(Symbol s){ 
+            System.err.println("Error Sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+".");
+            parser.Errores.add("Error Sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+". \n");
+    } 
+    /**
+     * Método al que se llama en el momento en que ya no es posible una recuperación de errores.
+     **/ 
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{ 
+            System.err.println("Error síntactico irrecuperable en la Línea " + (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
+            parser.Errores.add("Error Sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+". \n");
+    }  
+:} 
+
+
+//PUNTUACION
+terminal String ptcoma,parizq,parder,llavizq,llavder;
+//OPERADORES
+terminal String menque,mayque,menoigual,mayoigual,cigual,diferente;
+terminal String and, or;
+//TIPOS DATOS
+terminal String entero;
+terminal String decimal;
+terminal String bool;
+terminal String cadena;
+terminal String rimprimir, rmientras, rif, relse;
+terminal String identificador;
+
+non terminal INI;
+non terminal INSTRUCCIONES;
+non terminal INSTRUCCION;
+non terminal EXPRE_NUMERICA;
+non terminal EXPRE_CADENA;
+non terminal EXPRE_COMPARACION;
+non terminal EXPRE_LOGICA;
+
+precedence left and;
+precedence left or; 
+
+//ESPECIFICAR CON QUE NO TERMINAL EMPEZAR
+start with INI; 
+
+INI::=INSTRUCCIONES:instr
+  {:
+
+    Nodo nd = new Nodo("INICIO");
+    nd.setIdNod(parser.contador++);
+    nd.AddHijos((Nodo) instr);
+    parser.padre = (Nodo) nd;
+
+      System.out.println("------------*************----------------");
+      System.out.println("Compilacion exitosa!");
+      System.out.println("------------*************----------------");
+
+    RESULT = instr;
+  :}
+;
+
+INSTRUCCIONES ::= 
+	INSTRUCCIONES:s1 INSTRUCCION:s2
+  {:
+    Nodo tmp = new Nodo("INSTRUCCIONES");
+    tmp.setValor(" Lista_Instrucciones ");
+    tmp.setIdNod(parser.contador++);
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    System.out.println("NODOS RAIZ tmp: "+tmp.Etiqueta);
+    System.out.println("NODOS RAIZ s2: "+ ((Nodo)s2).getHijos());
+    RESULT=tmp;
+:}
+
+ | 	INSTRUCCION:s2
+ {:
+    Nodo tmp = new Nodo("INSTRUCCION");
+    tmp.setValor(" Instruccion ");
+    tmp.setIdNod(parser.contador++);
+    tmp.AddHijos((Nodo) s2);
+
+    System.out.println("NODOS RAIZ tmp: "+tmp.Etiqueta);
+    System.out.println("NODOS RAIZ s2: "+ ((Nodo)s2).getHijos());
+
+    RESULT=tmp;
+
+  :}
+; 
+
+INSTRUCCION ::= 
+   rimprimir:imprimir parizq EXPRE_CADENA:nd1 parder ptcoma
+   {:
+
+   	  parser.PalabraReservada.add(imprimir); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); parser.Simbolo.add(" ; ");
+
+      Nodo nd = new Nodo("IMPRIMIR");
+      nd.setValor(" imprimir ");
+      
+      Nodo sim = new Nodo("Simbolo");
+      sim.setValor(" ; ");
+      sim.setIdNod(parser.contador++);
+
+      Nodo para = new Nodo("Simbolo");
+      para.setValor(" ( ");
+      para.setIdNod(parser.contador++);
+
+      Nodo parc = new Nodo("Simbolo");
+      parc.setValor(" ) ");
+      parc.setIdNod(parser.contador++);
+
+      
+      nd.AddHijos((Nodo) para);
+      nd.AddHijos((Nodo) nd1);
+      nd.AddHijos((Nodo) parc);
+      nd.AddHijos((Nodo) sim);
+
+      nd.setIdNod(parser.contador++);
+      
+      RESULT=nd;
+    :}
+
+ | rmientras:mientras parizq EXPRE_LOGICA:logica parder llavizq INSTRUCCIONES:nd1 llavder
+ 	{:
+
+ 	  parser.PalabraReservada.add(mientras); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); parser.Simbolo.add(" ; "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } ");
+
+      Nodo nd = new Nodo("CICLO");
+      nd.setValor(" while ");
+      
+      Nodo para = new Nodo("Simbolo");
+      para.setValor(" ( ");
+      para.setIdNod(parser.contador++);
+
+      Nodo parc = new Nodo("Simbolo");
+      parc.setValor(" ) ");
+      parc.setIdNod(parser.contador++);
+
+      Nodo lla = new Nodo("Simbolo");
+      lla.setValor(" { ");
+      lla.setIdNod(parser.contador++);
+
+      Nodo llc = new Nodo("Simbolo");
+      llc.setValor(" } ");
+      llc.setIdNod(parser.contador++);
+
+      
+      
+      nd.AddHijos((Nodo) para);
+      nd.AddHijos((Nodo) logica);
+      nd.AddHijos((Nodo) parc);
+      nd.AddHijos((Nodo) lla);
+      nd.AddHijos((Nodo) nd1);
+      nd.AddHijos((Nodo) llc);
+
+      nd.setIdNod(parser.contador++);
+
+      RESULT = nd;
+
+ 	:}
+
+ | rif:iff parizq EXPRE_LOGICA:logica parder llavizq INSTRUCCIONES:nd1 llavder
+   {:
+
+   	  parser.PalabraReservada.add(iff); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } ");
+
+      Nodo nd = new Nodo("CONDICIONAL");
+      nd.setValor(" if ");
+      
+      Nodo para = new Nodo("Simbolo");
+      para.setValor(" ( ");
+      para.setIdNod(parser.contador++);
+
+      Nodo parc = new Nodo("Simbolo");
+      parc.setValor(" ) ");
+      parc.setIdNod(parser.contador++);
+
+      Nodo lla = new Nodo("Simbolo");
+      lla.setValor(" { ");
+      lla.setIdNod(parser.contador++);
+
+      Nodo llc = new Nodo("Simbolo");
+      llc.setValor(" } ");
+      llc.setIdNod(parser.contador++);
+
+      
+      
+      nd.AddHijos((Nodo) para);
+      nd.AddHijos((Nodo) logica);
+      nd.AddHijos((Nodo) parc);
+      nd.AddHijos((Nodo) lla);
+      nd.AddHijos((Nodo) nd1);
+      nd.AddHijos((Nodo) llc);
+
+      nd.setIdNod(parser.contador++);
+
+      RESULT = nd;
+
+ 	:}
+
+ | rif:iff parizq EXPRE_LOGICA:logica parder llavizq INSTRUCCIONES:nd1 llavder  relse:elsee llavizq INSTRUCCIONES:nd2 llavder
+ {:
+
+ 	  parser.PalabraReservada.add(iff); parser.PalabraReservada.add(elsee); parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) "); parser.Simbolo.add(" { "); parser.Simbolo.add(" } ");
+
+      Nodo nd = new Nodo("CONDICIONAL_SI_NO");
+      nd.setValor(" if ");
+      
+      Nodo para = new Nodo("Simbolo");
+      para.setValor(" ( ");
+      para.setIdNod(parser.contador++);
+
+      Nodo parc = new Nodo("Simbolo");
+      parc.setValor(" ) ");
+      parc.setIdNod(parser.contador++);
+
+      Nodo lla = new Nodo("Simbolo");
+      lla.setValor(" { ");
+      lla.setIdNod(parser.contador++);
+
+      Nodo llc = new Nodo("Simbolo");
+      llc.setValor(" } ");
+      llc.setIdNod(parser.contador++);
+
+      
+      
+      nd.AddHijos((Nodo) para);
+      nd.AddHijos((Nodo) logica);
+      nd.AddHijos((Nodo) parc);
+      nd.AddHijos((Nodo) lla);
+      nd.AddHijos((Nodo) nd1);
+      nd.AddHijos((Nodo) llc);
+
+      Nodo ndE = new Nodo("ELSE");
+      ndE.setValor(" else ");
+      nd.AddHijos((Nodo) ndE);
+
+      
+      Nodo lla2 = new Nodo("Simbolo");
+      lla2.setValor(" { ");
+      lla2.setIdNod(parser.contador++);
+
+      Nodo llc2 = new Nodo("Simbolo");
+      llc2.setValor(" } ");
+      llc2.setIdNod(parser.contador++);
+
+            
+      ndE.AddHijos((Nodo) lla2);
+      ndE.AddHijos((Nodo) nd2);
+      ndE.AddHijos((Nodo) llc2);
+
+      ndE.setIdNod(parser.contador++);
+      nd.setIdNod(parser.contador++);
+
+      RESULT = nd;
+
+ 	:}
+
+ | error
+;
+
+
+EXPRE_NUMERICA  ::= 
+    parizq EXPRE_NUMERICA parder
+  {:
+  		parser.Simbolo.add(" ( "); parser.Simbolo.add(" ) ");
+
+  :}
+
+ |  entero:numEntero
+  {:
+    parser.ValoresNumericos.add(numEntero); 
+
+    Nodo tmp = new Nodo("ENTERO");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(numEntero);
+    RESULT=tmp;
+
+  :}                                                 
+ |  decimal:numDecimal
+  {:
+    parser.ValoresNumericos.add(numDecimal); 
+
+    Nodo tmp = new Nodo("DECIMAL");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(numDecimal);
+    RESULT=tmp;
+
+  :}                                                  
+ |  identificador:identi
+  {:
+    parser.Variables.add(identi); 
+
+    Nodo tmp = new Nodo("IDENTIFICADOR");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(identi);
+    RESULT=tmp;
+
+  :}     
+;
+
+EXPRE_CADENA::= 
+	cadena:texto
+  {:
+    parser.Cadenas.add(texto);
+
+    Nodo tmp = new Nodo("TEXTO");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(texto);
+    RESULT=tmp;
+
+  :}
+ |  EXPRE_LOGICA:logica
+ {:
+
+    Nodo tmp = new Nodo("BOOLEAN");
+    tmp.setIdNod(parser.contador++);
+    tmp.AddHijos((Nodo) logica);
+    RESULT=tmp;
+
+ :}
+;
+
+EXPRE_COMPARACION  ::= 
+   EXPRE_NUMERICA:s1  mayque    EXPRE_NUMERICA:s2
+   {:
+
+   	parser.Simbolo.add(" > ");
+
+    Nodo tmp = new Nodo("COMPARACION");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" > ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+ | EXPRE_NUMERICA:s1  menque    EXPRE_NUMERICA:s2
+ {:
+
+ 	parser.Simbolo.add(" < ");
+
+    Nodo tmp = new Nodo("COMPARACION");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" < ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+ | EXPRE_NUMERICA:s1  mayoigual EXPRE_NUMERICA:s2
+ {:
+
+ 	parser.Simbolo.add(" >= ");
+
+    Nodo tmp = new Nodo("COMPARACION");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" >= ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+ | EXPRE_NUMERICA:s1  menoigual EXPRE_NUMERICA:s2
+ {:
+
+ 	parser.Simbolo.add(" >= ");
+
+    Nodo tmp = new Nodo("COMPARACION");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" <= ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+ | EXPRE_NUMERICA:s1  cigual    EXPRE_NUMERICA:s2
+ {:
+
+ 	parser.Simbolo.add(" == ");
+
+    Nodo tmp = new Nodo("COMPARACION");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" == ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+ | EXPRE_NUMERICA:s1  diferente EXPRE_NUMERICA:s2
+ {:
+
+ 	parser.Simbolo.add(" != ");
+
+    Nodo tmp = new Nodo("COMPARACION");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" != ");
+
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+ | bool:logica
+ {:
+
+ 	parser.Simbolo.add(logica);
+
+    Nodo tmp = new Nodo("BOOLEAN");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(logica);
+    RESULT=tmp;
+
+ :}
+
+ | EXPRE_NUMERICA                              
+;
+
+EXPRE_LOGICA ::=
+    EXPRE_LOGICA:s1 or EXPRE_LOGICA:s2
+    {:
+
+    Nodo tmp = new Nodo("LOGICA");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" or ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+  | EXPRE_LOGICA:s1 and EXPRE_LOGICA:s2
+  {:
+
+    Nodo tmp = new Nodo("LOGICA");
+    tmp.setIdNod(parser.contador++);
+    tmp.setValor(" and ");
+    
+    tmp.AddHijos((Nodo) s1);
+    tmp.AddHijos((Nodo) s2);
+
+    RESULT=tmp;
+
+ :}
+
+  | EXPRE_COMPARACION:comparacion
+  {:
+
+    Nodo tmp = new Nodo("EXPRESION");
+    tmp.setIdNod(parser.contador++);
+    tmp.AddHijos((Nodo) comparacion);
+    RESULT=tmp;
+
+  	:}
+;

@@ -1,0 +1,5 @@
+digraph G {node[shape=octagon, style=filled, color=blanchedalmond]; edge[color=chocolate3];rankdir=UD 
+
+"16.INICIO=null"->"15.INSTRUCCION= Instruccion ""15.INSTRUCCION= Instruccion "->"14.CICLO= while ""14.CICLO= while "->"10.Simbolo= ( ""14.CICLO= while "->"3.EXPRESION=null""3.EXPRESION=null"->"2.COMPARACION= > ""2.COMPARACION= > "->"0.IDENTIFICADOR=a""2.COMPARACION= > "->"1.ENTERO=1""14.CICLO= while "->"11.Simbolo= ) ""14.CICLO= while "->"12.Simbolo= { ""14.CICLO= while "->"9.INSTRUCCION= Instruccion ""9.INSTRUCCION= Instruccion "->"8.IMPRIMIR= imprimir ""8.IMPRIMIR= imprimir "->"6.Simbolo= ( ""8.IMPRIMIR= imprimir "->"4.TEXTO=Ciclo While""8.IMPRIMIR= imprimir "->"7.Simbolo= ) ""8.IMPRIMIR= imprimir "->"5.Simbolo= ; ""14.CICLO= while "->"13.Simbolo= } "
+
+}

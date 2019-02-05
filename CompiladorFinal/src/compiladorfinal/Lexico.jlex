@@ -1,0 +1,71 @@
+//Proyecto Final - Compiladores
+//Melvin Randolfo Canté Guerra
+//5990 14 1106
+//Clase Lexico
+
+package compiladorfinal;
+import java_cup.runtime.Symbol;
+import java.util.LinkedList;
+
+%% 
+%class Lexico
+%public 
+%line 
+%char 
+%cup 
+%unicode
+%ignorecase
+%{
+	/* Lista con errores lexicos */
+	public static LinkedList<String> ErroresLexicos=new LinkedList<String>();
+%}	
+%init{ 
+    yyline = 1; 
+    yychar = 1; 
+%init} 
+ 
+BLANCOS=[ \r\t]+
+CADENACOMILLASDOBLES = [\"]([^\"\n]|(\\\"))*[\"]
+D=[0-9]+
+DD=[0-9]+("."[  |0-9]+)?
+ID=[A-Za-z]+["_"0-9A-Za-z]*
+COMENTUNILINEA =("//".*\r\n)|("//".*\n)|("//".*\r)
+COMENTMULTILINEA ="/*""/"*([^*/]|[^*]"/"|"*"[^/])*"*"*"*/"
+%%
+
+{COMENTUNILINEA} {} 
+{COMENTMULTILINEA} {}  
+{CADENACOMILLASDOBLES} {return new Symbol(sym.cadena,yyline,yychar, (yytext()).substring(1,yytext().length()-1));} 
+
+"imprimir" {return new Symbol(sym.rimprimir,yyline,yychar, yytext());} 
+"while" {return new Symbol(sym.rmientras,yyline,yychar, yytext());} 
+"if" {return new Symbol(sym.rif,yyline,yychar, yytext());} 
+"else" {return new Symbol(sym.relse,yyline,yychar, yytext());}
+"true"|"false" {return new Symbol(sym.bool,yyline,yychar, yytext());}
+
+";"  {return new Symbol(sym.ptcoma,yyline,yychar, yytext());} 
+"{"  {return new Symbol(sym.llavizq,yyline,yychar, yytext());} 
+"}"  {return new Symbol(sym.llavder,yyline,yychar, yytext());} 
+"("  {return new Symbol(sym.parizq,yyline,yychar, yytext());} 
+")"  {return new Symbol(sym.parder,yyline,yychar, yytext());} 
+"<"  {return new Symbol(sym.menque,yyline,yychar, yytext());} 
+">"  {return new Symbol(sym.mayque,yyline,yychar, yytext());} 
+"<=" {return new Symbol(sym.menoigual,yyline,yychar, yytext());}
+">=" {return new Symbol(sym.mayoigual,yyline,yychar, yytext());}
+"==" {return new Symbol(sym.cigual,yyline,yychar, yytext());}
+"!=" {return new Symbol(sym.diferente,yyline,yychar, yytext());}
+"&&" {return new Symbol(sym.and,yyline,yychar, yytext());}
+"||" {return new Symbol(sym.or,yyline,yychar, yytext());}
+
+
+\n {yychar=1;}
+
+{BLANCOS} {} 
+{ID} {return new Symbol(sym.identificador,yyline,yychar, yytext());} 
+{D} {return new Symbol(sym.entero,yyline,yychar, yytext());} 
+{DD} {return new Symbol(sym.decimal,yyline,yychar, yytext());} 
+
+. {
+    System.err.println("Este es un error lexico: "+yytext()+", en la linea: "+yyline+", en la columna: "+yychar);
+    ErroresLexicos.add("Este es un error lexico: "+yytext()+", en la linea: "+yyline+", en la columna: "+yychar + " con el caracter:\n " +yytext() + "\n");
+}

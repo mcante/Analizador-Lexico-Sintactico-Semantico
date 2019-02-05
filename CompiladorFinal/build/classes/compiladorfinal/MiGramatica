@@ -1,0 +1,111 @@
+//Proyecto Final - Compiladores
+//Melvin Randolfo Canté Guerra
+//5990 14 1106
+//Clase Sintactico
+
+
+package compiladorfinal; 
+
+import java.util.LinkedList;
+import java_cup.runtime.*;
+//CODIGO DEL PARSER
+parser code 
+{:
+	public static Nodo padre;
+	public int conta=0;
+
+	//Listas para almacenar las PALABRAS RESERVADAS, SIMBOLOS, CADENAS Y VALORES NUMÉRICOS
+	public static LinkedList<String> PalabraReservada = new LinkedList<String>();
+	public static LinkedList<String> Simbolo = new LinkedList<String>();
+	public static LinkedList<String> Cadenas = new LinkedList<String>();
+	public static LinkedList<String> ValoresNumericos = new LinkedList<String>();
+	
+
+    
+    /**
+     * Método al que se llama automáticamente ante algún error sintactico.
+     **/ 
+    public void syntax_error(Symbol s){ 
+            System.err.println("Error Sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+".");
+    } 
+    /**
+     * Método al que se llama en el momento en que ya no es posible una recuperación de errores.
+     **/ 
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{ 
+            System.err.println("Error síntactico irrecuperable en la Línea " + (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
+    }  
+:} 
+
+
+//PUNTUACION
+terminal String ptcoma,pariz,parder,llavizq,llavder;
+//OPERADORES
+terminal String menque,mayque,menoigual,mayoigual,cigual,diferente;
+terminal String and, or;
+//TIPOS DATOS
+terminal String entero;
+terminal String decimal;
+terminal String bool;
+terminal String cadena;
+terminal String pimprimir, rmientras, rif, relse;
+terminal String identificador;
+
+non terminal INI;
+non terminal instrucciones;
+non terminal instruccion;
+non terminal expresion_numerica;
+non terminal expresion_cadena;
+non terminal expresion_comparacion;
+non terminal expresion_logica;
+
+precedence left and;
+precedence left or; 
+
+//ESPECIFICAR CON QUE NO TERMINAL EMPEZAR
+start with INI; 
+
+INI::=INSTRUCCIONES
+
+
+INSTRUCCIONES ::= 
+	INSTRUCCIONES instruccion
+ | 	instruccion
+; 
+
+instruccion ::= 
+   pimprimir pariz expresion_cadena parder ptcoma                          
+ | rmientras pariz expresion_logica parder llavizq INSTRUCCIONES llavder 
+ | rif pariz expresion_logica parder llavizq INSTRUCCIONES llavder       
+ | rif pariz expresion_logica parder llavizq INSTRUCCIONES llavder  relse llavizq instrucciones llavder 
+ | error
+;
+
+
+expresion_numerica  ::= 
+    pariz expresion_numerica parder                       
+ |  entero                                                 
+ |  decimal                                                
+ |  identificador
+;
+
+expresion_cadena::= 
+	cadena
+ |  expresion_logica
+;
+
+expresion_comparacion  ::= 
+   expresion_numerica  mayque    expresion_numerica
+ | expresion_numerica  menque    expresion_numerica
+ | expresion_numerica  mayoigual expresion_numerica
+ | expresion_numerica  menoigual expresion_numerica
+ | expresion_numerica  cigual    expresion_numerica
+ | expresion_numerica  diferente expresion_numerica
+ | bool                                              
+ | expresion_numerica                              
+;
+
+expresion_logica ::=
+    expresion_logica or expresion_logica
+  | expresion_logica and expresion_logica
+  | expresion_comparacion
+;
